@@ -1,0 +1,261 @@
+[include fluidd.cfg]
+
+[include mainsail.cfg]
+
+[include KAMP_Settings.cfg]
+
+[exclude_object]
+
+[include pi.cfg]
+
+#[include adxl.cfg]
+
+#[include ./Demon_KLIPPER_Essentials/*.cfg]
+
+[include macros.cfg]
+
+[include timelapse.cfg]
+
+[include print_area_bed_mesh.cfg]
+
+# This file contains pin mappings for the Creality "v4.2.2" board on Ender 5 Pro. To
+# use this config, during "make menuconfig" select the STM32F103 with
+# a "28KiB bootloader" and serial (on USART1 PA10/PA9) communication.
+# If you prefer a direct serial connection, in "make menuconfig"
+# select "Enable extra low-level configuration options" and select
+# serial (on USART3 PB11/PB10), which is broken out on the 10 pin IDC
+# cable used for the LCD module as follows:
+# 3: Tx, 4: Rx, 9: GND, 10: VCC
+# Flash this firmware by copying "out/klipper.bin" to a SD card and
+# turning on the printer with the card inserted. The firmware
+# filename must end in ".bin" and must not match the last filename
+# that was flashed.
+# See docs/Config_Reference.md for a description of parameters.
+
+
+[stepper_x]
+step_pin: PC2
+dir_pin: !PB9
+enable_pin: !PC3
+microsteps: 16
+rotation_distance: 40
+endstop_pin: ^PA5
+position_endstop: 0
+position_max: 235
+homing_speed: 70
+
+[stepper_y]
+step_pin: PB8
+dir_pin: !PB7
+enable_pin: !PC3
+microsteps: 16
+rotation_distance: 40
+endstop_pin: ^PA6
+position_endstop: 0
+position_max: 235
+homing_speed: 70
+
+[stepper_z]
+step_pin: PB6
+dir_pin: PB5
+enable_pin: !PC3
+microsteps: 16
+rotation_distance: 4
+endstop_pin: probe:z_virtual_endstop
+#position_endstop: 0.0
+position_max: 250
+position_min:-4
+#endstop_pin: ^PA7 #original endstop pin. need to reinstall cable to use it. 
+
+[extruder]
+max_extrude_only_distance: 100.0
+step_pin: PB4
+dir_pin: PB3
+enable_pin: !PC3
+microsteps: 16
+rotation_distance: 22.968
+nozzle_diameter: 0.400
+filament_diameter: 1.750
+heater_pin: PA1
+sensor_type: EPCOS 100K B57560G104F
+sensor_pin: PC5
+#control: pid
+#pid_Kp: 21.527
+#pid_Ki: 1.063
+#pid_Kd: 108.982
+min_temp: 0
+max_temp: 250
+pressure_advance: 0.090
+
+[heater_bed]
+heater_pin: PA2
+sensor_type: EPCOS 100K B57560G104F
+sensor_pin: PC4
+#control: pid
+#pid_Kp: 54.027
+#pid_Ki: 0.770
+#pid_Kd: 948.182
+min_temp: 0
+max_temp: 130
+
+[fan]
+pin: PA0
+
+[mcu]
+serial: /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+restart_method: command
+
+[printer]
+#kinematics: cartesian
+kinematics: hybrid_corexy
+max_velocity: 300
+max_accel: 3500
+max_z_velocity: 5
+max_z_accel: 100
+
+#[input_shaper]
+#shaper_freq_x: 58.1
+#shaper_freq_y: 38.7
+#shaper_type: ei
+
+[gcode_arcs]
+resolution: 1.0
+
+[display] # RET6 12864 LCD
+lcd_type: st7920
+cs_pin: PB12
+sclk_pin: PB13
+sid_pin: PB15
+encoder_pins: ^PB14, ^PB10
+click_pin: ^!PB2
+
+[output_pin BEEPER_Pin]
+pin: PC6
+pwm: True
+value: 0
+shutdown_value: 0
+cycle_time: 0.001
+scale: 1
+
+[gcode_macro M300]
+gcode:
+    {% set S = params.S|default(1000)|int %} ; S sets the tone frequency
+    {% set P = params.P|default(100)|int %} ; P sets the tone duration
+    {% set L = 0.5 %} ; L varies the PWM on time, close to 0 or 1 the tone gets a bit quieter. 0.5 is a symmetric waveform
+    {% if S <= 0 %} ; dont divide through zero
+    {% set F = 1 %}
+    {% set L = 0 %}
+    {% elif S >= 10000 %} ;max frequency set to 10kHz
+    {% set F = 0 %}
+    {% else %}
+    {% set F = 1/S %} ;convert frequency to seconds
+    {% endif %}
+    SET_PIN PIN=BEEPER_Pin VALUE={L} CYCLE_TIME={F} ;Play tone
+    G4 P{P} ;tone duration
+    SET_PIN PIN=BEEPER_Pin VALUE=0
+
+[virtual_sdcard]
+path: /home/pi/printer_data/gcodes
+
+[display_status]
+
+[pause_resume]
+
+
+[gcode_macro CANCEL_PRINT]
+description: Cancel the actual running print
+rename_existing: CANCEL_PRINT_BASE
+gcode:
+  TURN_OFF_HEATERS
+  CANCEL_PRINT_BASE
+
+[temperature_sensor Libre_Potate]
+sensor_type: temperature_host
+min_temp: 10
+max_temp: 100
+
+[temperature_sensor mcu_temp]
+sensor_type: temperature_mcu
+min_temp: 0
+max_temp: 100
+
+[bltouch]
+sensor_pin = ^PB1
+control_pin = PB0
+x_offset = 45
+y_offset = 5
+#z_offset = 0
+probe_with_touch_mode = True
+pin_up_touch_mode_reports_triggered = False
+
+[safe_z_home]
+home_xy_position: 110, 110 # Change coordinates to the center of your print bed
+speed: 70
+z_hop: 10 # Move up 10mm
+z_hop_speed: 5
+
+[bed_mesh]
+speed: 150
+horizontal_move_z: 5
+mesh_min: 45, 15       #!!min and max co-ords are based on the probes location not the nozzle!!
+mesh_max: 215, 200  #needs to be calibrated for your individual printer
+probe_count: 8,8 #this is the number of probing points on X then Y axis
+mesh_pps: 4,4
+#fade_start: 1
+#fade_end: 10
+#fade_target: 0
+algorithm: bicubic
+bicubic_tension: 0.2
+
+#[adxl345]
+#cs_pin: rpi:None
+
+#[resonance_tester]
+#accel_chip: adxl345
+#probe_points: 100, 100, 20  # an example
+
+#*# <---------------------- SAVE_CONFIG ---------------------->
+#*# DO NOT EDIT THIS BLOCK OR BELOW. The contents are auto-generated.
+#*#
+#*# [extruder]
+#*# control = pid
+#*# pid_kp = 24.602
+#*# pid_ki = 1.252
+#*# pid_kd = 120.859
+#*#
+#*# [heater_bed]
+#*# control = pid
+#*# pid_kp = 73.094
+#*# pid_ki = 1.646
+#*# pid_kd = 811.348
+#*#
+#*# [bltouch]
+#*# z_offset = 2.105
+#*#
+#*# [bed_mesh default]
+#*# version = 1
+#*# points =
+#*# 	  0.260000, 0.236250, 0.231250, 0.235000, 0.247500
+#*# 	  0.191250, 0.163750, 0.127500, 0.138750, 0.182500
+#*# 	  0.120000, 0.082500, 0.066250, 0.078750, 0.110000
+#*# 	  0.046250, 0.002500, -0.015000, -0.022500, 0.021250
+#*# 	  -0.006250, -0.040000, -0.066250, -0.048750, -0.032500
+#*# 	  -0.036250, -0.057500, -0.108750, -0.090000, -0.061250
+#*# 	  -0.065000, -0.093750, -0.108750, -0.097500, -0.076250
+#*# 	  -0.097500, -0.121250, -0.173750, -0.141250, -0.108750
+#*# x_count = 5
+#*# y_count = 8
+#*# mesh_x_pps = 4
+#*# mesh_y_pps = 4
+#*# algo = bicubic
+#*# tension = 0.2
+#*# min_x = 60.55
+#*# max_x = 159.44
+#*# min_y = 40.9
+#*# max_y = 179.07
+#*#
+#*# [input_shaper]
+#*# shaper_type_x = mzv
+#*# shaper_freq_x = 26
+#*# shaper_type_y = mzv
+#*# shaper_freq_y = 24.2
