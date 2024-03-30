@@ -1,0 +1,1 @@
+Here is a repository of all of my printer configs. Inside that folder you will also find a walkthrough to how to fix your STM32F103RET6 chip if you happen to have set the wrong bootloader offset and killed your board. 
