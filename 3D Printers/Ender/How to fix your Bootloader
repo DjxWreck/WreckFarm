@@ -1,0 +1,61 @@
+How to fix your Bootloader now that you’ve set the wrong offset and “killed” your board. 
+
+First, credits are due to u/Key_Mode1468 and xsnoopys post on the klipper forum. 
+
+xSnoopy’s Ender 6 github:
+ https://github.com/xsnoopy/Ender6
+
+Key_mode and I’s post on reddit that lead to this walkthrough being made: 
+https://www.reddit.com/r/klippers/comments/1bm28n8/i_made_a_bad_klipper_firmware_flash_and_i_need/ 
+
+
+This fix has been tested on a Creality Ender 6 (creality V4.3.1) and Ender 3 V2 ( Creality V4.2.7) both using the STM32F103 RET 6 chipsets. 
+
+!!!!!!!!!!!!!WARNINGS!!!!!!!!!!!!
+
+Now that this has happened to you there are a few things you need to know and obtain. First the list of things you need to obtain:
+•	A broken bootloader from trying to flash the wrong offset during a klipper flash. 
+•	A STMLink device like a STLink V2 or V3. (google this. Its easy to find. Amazon is a great place to find a knock off device. These knock offs will work fine as these were how we tested the process.) 
+•	STLink Programer utility. 
+o	Official link: https://www.st.com/en/development-tools/stsw-link004.html
+o	Unofficial link: https://stm32-st-link-utility.software.informer.com/download/ 
+•	Dupont cables to connect the STLink to your Creality board. 
+•	A working USB Micro cable.
+•	A Raspberry or other Linux based operating system to build your firmware for both your new bootloader and your new klipper install and to run your klipper. 
+•	A Windows based machine to do the flashing and Winscp/SSH. May be possible on other operating systems, we tested on Windows. 
+Now to the things that you need to know:
+•	First, your board is most likely salvageable. Following these steps will give you a really good shot at bringing it back from the “dead” 
+•	Your bootloader will no longer allow updates to the firmware through the SDCard or USB. YET!. Canboot aka Katapult, is working on the creality 4.x.x boards for this support. However, this means that you will need your STLink any time you wanna update the firmware and you will need to make sure you remember the address of where to flash it or just return here each time. 
+
+
+Now on to the fun part. Once you have obtained your STLink V2/V3 and have your board removed from the printer, hook up the STLink to the appropriate pins on your board. You are looking for the VCC, DIO, CLK, GND pins. On the Ender 6 V4.3.1 board these are located next to the on-board screen plug (black ten pin plug in the bottom right) make sure to connect VCC to your 3.3v pin on your STLink. 
+
+
+	STLink							Creality board
+	3.3V		==>				VCC
+	DIO			==>				DIO
+	CLK			==>				CLK
+	GND			==>				GND 
+
+
+Next, we will SSH into your Raspberry and install Katapult so that we can build our bootloader using the same ‘make menuconfig’ that you use for klipper. Following the steps found on Arksine’s Githib (https://github.com/Arksine/katapult?tab=readme-ov-file#building) you will make your Katapult bootloader. Make sure to set the first options to STM32 and STM32F103. Make sure to note what offset you are creating here! It is very important or you get to start the process over again. Next, choose if you’d like to use any GPIO pins to enter the bootloader. This may be helpful later but is not needed now. Next, quit and save that config and make sure to ‘make’ the bootloader. It will be found in /katapult/out. To get there make sure to use a file manager like WinSCP or similar to retrieve that .bin file from the katapult directory. 
+
+Next, go back through your klipper install and make a new bin file for klipper that uses the offset you set in the Katapult bootloader build. Make sure to navigate to /klipper/out to grab this .bin file as well. We will end up flashing both of them from your Windows machine using STLink Programmer. 
+
+Once you have both the Katapult.bin and Klipper.bin (with the correct offset loaded from your katapult build) you will then open STLink Programmer and connect your STlink to your computer. Depending on your specific model of board you may need to jump the reset pins located near your extruder fan plug to get the STlink to connect to your programmer. These are labelled ‘P3’ and may or may not have pins already soldered in. If they do not have pins, you can make a jumper with a dupont cable and some extra pins or a paper clip. Be careful to only touch these pins as to not short any thing out while you are working. Once the STLink programmer reads your internal flash memory it will populate in the window in the middle. 
+
+This is where things get kinda scary/fun. First, you need to erase the entire chip. To do this click the eraser icon at the top or navigate through target>Erase Chip. After it has been erased, click target>program. Using the ‘Browse’ button on the right, navigate to your KATAPULT.bin first. Again, navigate to the KATAPULT.bin file first. Go ahead and flash it to the 0x08000000 address. Next, you are going to go to the same spot, target>program, and now you are going to use ‘Browse’ to navigate to your KLIPPER.BIN with the proper offset you set in your katapult build. BEFORE CLICKING FLASH THIS TIME YOU ARE GOING TO MODIFY THE ADDRESS IT STARTS AT!!!! Modify the starting address to 0x08002000. This is very important. If you rewrite over the starting address, you will get rid of your bootloader again. Triple check this section is set to ‘0x08002000’. This is the end of the bootloader and this is where we want the new version of klipper to sit. These flashes both should be quick and almost unnoticeable. You will know its working if the console at the bottom of the programmer you see blue words that say successfully written in xxx sec and xxx ms. Once this is done, you can test your new klipper installation by giving the board 24v power and plugging in the usb to a linux system with klipper installed. If you get an ADC error, you are good to go!!!! Unplug the main power plug on the outside and start hooking everything else back up. Test again once everything is hooked up and plugged in just to make sure it reads correctly.  
+
+If you get a cannot connect error, attempt to restart both the printer and the raspberry/linux environment. If you are still having issues, retry the process at least once all the way through to confirm that no errors were made. If still nothing is working, the board may be dead, and I am sorry. 
+
+If you have been successful so far, congrats on bringing back your printer from the dead. Next time, pay super close attention to firmware installs or you will end up here again =) Happy Printing and welcome back to the fold. 
+
+
+
+
+
+
+
+
+Keywords to help people find this page!
+Wrong bootloader Flashed wrong bootloader How to fix wrong bootloader Creality v4.3.1 V 4.3.1 v4.2.7 v 4.2.7 STM32F103 RET 6 How to fix bootloader Creality Ender 6  Ender 3 V2
